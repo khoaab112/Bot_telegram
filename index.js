@@ -1,5 +1,5 @@
 'use strict';
-const chatController = require("./controller/chatController");
+const chatController = require("./controller/ChatController");
 const dotenv = require('dotenv');
 dotenv.config();
 const { PORT, URL, TOKEN_TELEGRAM } = process.env;

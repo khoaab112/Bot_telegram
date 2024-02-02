@@ -8,10 +8,16 @@ const fs = require('fs');
 const options = {
     parse_mode: "HTML",
 };
+var unfinishedWork = {
+    key: "",
+    isUnlocked: false,
+};
+var numberUnlockRequests = 0;
+var lastUnlockRequestTime = null;
 
 function byKeyword() {
     bot.onText(/\/key(.+)/, (msg, match) => {
-        console.log(match);
+        // console.log(match);
         const chatId = msg.chat.id;
         bot.sendMessage(chatId, "Hãy nhâp từ khóa");
 
@@ -57,22 +63,95 @@ function byKeyword() {
     });
     bot.onText(/\/clear/, (msg, match) => {
         const chatId = msg.chat.id;
-        bot.sendMessage(chatId, "Chưa hoạt động !", options);
+        // console.log(chatId);
+        const inlineKeyboard = {
+            inline_keyboard: [
+                [{ text: '✔️ Theo lựa chọn', callback_data: 'selective_deletion' }, { text: '🗑️ Xóa toàn bộ', callback_data: 'remove_all' }],
+            ]
+        };
+        const messageOptions = {
+            reply_markup: inlineKeyboard
+        };
+        unfinishedWork.key = "1";
+        bot.sendMessage(chatId, 'Hãy lựa chọn hành động :', messageOptions);
     });
 }
 
 function receiveAll() {
     bot.on('message', (msg) => {
-        // console.log(msg);
-
+        console.log(msg);
         const chatId = msg.chat.id;
+        if (Number(numberUnlockRequests) >= 3) {
+            unfinishedWork = {
+                key: "",
+                isUnlocked: false,
+            };
+            numberUnlockRequests = 0;
+            lastUnlockRequestTime = null;
+        } else if ((Math.abs(new Date() - lastUnlockRequestTime) / 60000) > 3) {
+            unfinishedWork = {
+                key: "",
+                isUnlocked: false,
+            };
+            numberUnlockRequests = 0;
+            lastUnlockRequestTime = null;
 
-        // send a message to the chat acknowledging receipt of their message
-        // bot.sendMessage(chatId, 'Received your message');
+        } else if (unfinishedWork.key != "" && !unfinishedWork.isUnlocked) {
+            let code = msg.text;
+            bot.deleteMessage(chatId, msg.message_id);
+            if (code.trim() == KEY) {
+                unfinishedWork.isUnlocked = true;
+                fulfillRequest();
+                return bot.sendMessage(chatId, "Nhập chính xác", options);;
+            }
+            requestPassword(chatId, unfinishedWork.key)
+        }
     });
 }
 
+function requestPassword(chatId, key) {
+    let message = "<strong>Hãy nhập mật khẩu</strong>\n";
+    message += "<i>(Quá 3 lần hãy thao tác từ đầu)</i>"
+    unfinishedWork.key = key;
+    numberUnlockRequests = numberUnlockRequests + 1;
+    lastUnlockRequestTime = new Date();
+    return bot.sendMessage(chatId, message, options);
+}
+bot.on('callback_query', (callbackQuery) => {
+    const data = callbackQuery.data;
+    const chatId = callbackQuery.message.chat.id;
+    const message_id = callbackQuery.message.message_id;
+    switch (data) {
+        case 'selective_deletion':
+            unfinishedWork = {
+                key: "",
+                isUnlocked: false,
+                id_message: message_id,
+                chat_id: chatId
+            };
+            numberUnlockRequests = 0;
+            lastUnlockRequestTime = null;
+            requestPassword(chatId, 'selective_deletion');
+            break;
+
+        default:
+            break;
+    }
+
+});
+
+function fulfillRequest() {
+    var key = unfinishedWork.key;
+    if (!unfinishedWork.isUnlocked) { return; }
+    switch (key) {
+        case 'selective_deletion':
+
+            break;
+        default:
+
+    }
+}
 module.exports = {
     receiveAll,
-    byKeyword
+    byKeyword,
 }
