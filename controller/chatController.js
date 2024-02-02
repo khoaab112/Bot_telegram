@@ -27,8 +27,38 @@ function byKeyword() {
         message += `🐸🐸🐸`;
         bot.sendMessage(chatId, message, options);
     });
-
-
+    bot.onText(/\/group_list/, (msg, match) => {
+        const chatId = msg.chat.id;
+        bot.sendMessage(chatId, "Chưa hoạt động !", options);
+    });
+    bot.onText(/\/Google_sheet/, (msg, match) => {
+        const chatId = msg.chat.id;
+        bot.sendMessage(chatId, "Chưa hoạt động !", options);
+    });
+    bot.onText(/\/weather/, (msg, match) => {
+        const chatId = msg.chat.id;
+        bot.sendMessage(chatId, "Chưa hoạt động !", options);
+    });
+    bot.onText(/\/girl/, (msg, match) => {
+        const chatId = msg.chat.id;
+        bot.sendMessage(chatId, "Chưa hoạt động !", options);
+    });
+    bot.onText(/\/shop_web/, (msg, match) => {
+        const chatId = msg.chat.id;
+        bot.sendMessage(chatId, "Chưa hoạt động !", options);
+    });
+    bot.onText(/\/avatar_bot/, (msg, match) => {
+        const chatId = msg.chat.id;
+        bot.sendMessage(chatId, "Chưa hoạt động !", options);
+    });
+    bot.onText(/\/avatar_group/, (msg, match) => {
+        const chatId = msg.chat.id;
+        bot.sendMessage(chatId, "Chưa hoạt động !", options);
+    });
+    bot.onText(/\/clear/, (msg, match) => {
+        const chatId = msg.chat.id;
+        bot.sendMessage(chatId, "Chưa hoạt động !", options);
+    });
 }
 
 function receiveAll() {
