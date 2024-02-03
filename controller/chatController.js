@@ -1,6 +1,6 @@
 const dotenv = require('dotenv');
 dotenv.config();
-const { TOKEN_TELEGRAM, KEY } = process.env;
+const { TOKEN_TELEGRAM, KEY, ID_USER } = process.env;
 const TelegramBot = require('node-telegram-bot-api');
 const token = TOKEN_TELEGRAM;
 const bot = new TelegramBot(token, { polling: true });
@@ -35,10 +35,12 @@ function byKeyword() {
     });
     bot.onText(/\/group_list/, (msg, match) => {
         const chatId = msg.chat.id;
+        if (!allowOperation(chatId, msg.chat.type)) return;
         bot.sendMessage(chatId, "Chưa hoạt động !", options);
     });
     bot.onText(/\/Google_sheet/, (msg, match) => {
         const chatId = msg.chat.id;
+        if (!allowOperation(chatId, msg.chat.type)) return;
         bot.sendMessage(chatId, "Chưa hoạt động !", options);
     });
     bot.onText(/\/weather/, (msg, match) => {
@@ -51,10 +53,12 @@ function byKeyword() {
     });
     bot.onText(/\/shop_web/, (msg, match) => {
         const chatId = msg.chat.id;
+        if (!allowOperation(chatId, msg.chat.type)) return;
         bot.sendMessage(chatId, "Chưa hoạt động !", options);
     });
     bot.onText(/\/avatar_bot/, (msg, match) => {
         const chatId = msg.chat.id;
+        if (!allowOperation(chatId, msg.chat.type)) return;
         bot.sendMessage(chatId, "Chưa hoạt động !", options);
     });
     bot.onText(/\/avatar_group/, (msg, match) => {
@@ -79,7 +83,6 @@ function byKeyword() {
 
 function receiveAll() {
     bot.on('message', (msg) => {
-        console.log(msg);
         const chatId = msg.chat.id;
         if (Number(numberUnlockRequests) >= 3) {
             unfinishedWork = {
@@ -150,6 +153,12 @@ function fulfillRequest() {
         default:
 
     }
+}
+
+function allowOperation(chat_id, type_chat) {
+    if (chat_id == ID_USER && type_chat == 'private')
+        return true;
+    return false;
 }
 module.exports = {
     receiveAll,
