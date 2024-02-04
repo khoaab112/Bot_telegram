@@ -1,3 +1,5 @@
+const googleDrive = require("./GoogleDriveController");
+
 const dotenv = require('dotenv');
 dotenv.config();
 const { TOKEN_TELEGRAM, KEY, ID_USER } = process.env;
@@ -28,7 +30,7 @@ function byKeyword() {
     bot.onText(/\/menu/, (msg, match) => {
         const chatId = msg.chat.id;
         let message = "Danh sách lệnh\n"
-        message += '<strong>/key\n/menu\n/group_list\n/Google_sheet\n/Note\n/weather\n/girl\n/shop_web\n/avatar_bot\n/avatar_group</strong>\n/clear'
+        message += '<strong>/key\n/menu\n/group_list\n/Google_sheet\n/Note\n/weather\n/girl\n/shop_web\n/avatar_bot\n/avatar_group</strong>\n/clear\n/<strong>folder_google_drive</strong>\n'
         message += '<i>----------------------</i>\n ';
         message += `🐸🐸🐸`;
         bot.sendMessage(chatId, message, options);
@@ -65,12 +67,34 @@ function byKeyword() {
         const chatId = msg.chat.id;
         bot.sendMessage(chatId, "Chưa hoạt động !", options);
     });
+    bot.onText(/\/folder_google_drive/, async(msg, match) => {
+        const chatId = msg.chat.id;
+        var data = await googleDrive.getListFile()
+        console.log(data);
+        var iconFolder = "📁";
+        var message = "<strong>Danh sách thư mục\n</strong>"
+        var lsBtn = [];
+        data.forEach(element => {
+            lsBtn.push({
+                text: iconFolder + element.name + "_(" + element.id + ")",
+                callback_data: 'btn_folder',
+            });
+        });
+        const inlineKeyboard = { inline_keyboard: [lsBtn] };
+        const messageOptions = {
+            reply_markup: inlineKeyboard
+        };
+        bot.sendMessage(chatId, message, messageOptions);
+    });
     bot.onText(/\/clear/, (msg, match) => {
         const chatId = msg.chat.id;
         // console.log(chatId);
         const inlineKeyboard = {
             inline_keyboard: [
-                [{ text: '✔️ Theo lựa chọn', callback_data: 'selective_deletion' }, { text: '🗑️ Xóa toàn bộ', callback_data: 'remove_all' }],
+                [{
+                    text: '✔️ Theo lựa chọn',
+                    callback_data: 'selective_deletion',
+                }, { text: '🗑️ Xóa toàn bộ', callback_data: 'remove_all' }],
             ]
         };
         const messageOptions = {
@@ -121,6 +145,8 @@ function requestPassword(chatId, key) {
     return bot.sendMessage(chatId, message, options);
 }
 bot.on('callback_query', (callbackQuery) => {
+    // console.log(callbackQuery.message.reply_markup.inline_keyboard);
+    console.log(callbackQuery);
     const data = callbackQuery.data;
     const chatId = callbackQuery.message.chat.id;
     const message_id = callbackQuery.message.message_id;
