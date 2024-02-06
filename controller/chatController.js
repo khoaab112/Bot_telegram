@@ -1,5 +1,7 @@
 const googleDrive = require("./GoogleDriveController");
-
+const method = require("../Helpers/method");
+const link = "https://lh3.googleusercontent.com/d/";
+const GROUP_FOLDER_PATH = "./assets/doc/groups.json"
 const dotenv = require('dotenv');
 dotenv.config();
 const { TOKEN_TELEGRAM, KEY, ID_USER } = process.env;
@@ -7,6 +9,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const token = TOKEN_TELEGRAM;
 const bot = new TelegramBot(token, { polling: true });
 const fs = require('fs');
+const { type } = require("os");
 const options = {
     parse_mode: "HTML",
 };
@@ -29,16 +32,41 @@ function byKeyword() {
     });
     bot.onText(/\/menu/, (msg, match) => {
         const chatId = msg.chat.id;
-        let message = "Danh sách lệnh\n"
-        message += '<strong>/key\n/menu\n/group_list\n/Google_sheet\n/Note\n/weather\n/girl\n/shop_web\n/avatar_bot\n/avatar_group</strong>\n/clear\n/<strong>folder_google_drive</strong>\n'
+        let message = "Danh sách lệnh\n";
+        message += '<strong>/key\n' +
+            '/menu\n' +
+            '/group_list\n' +
+            '/Google_sheet\n' +
+            '/Note\n' +
+            '/weather\n' +
+            '/girl\n/' +
+            'shop_web\n' +
+            '/avatar_bot\n' +
+            '/avatar_group' +
+            '</strong>\n' +
+            '/clear\n/' +
+            '<strong>folder_google_drive</strong>\n' +
+            '<i>/add_group</i>\n' +
+            '<i>/remove_group</i>\n';
         message += '<i>----------------------</i>\n ';
         message += `🐸🐸🐸`;
+
         bot.sendMessage(chatId, message, options);
     });
     bot.onText(/\/group_list/, (msg, match) => {
         const chatId = msg.chat.id;
         if (!allowOperation(chatId, msg.chat.type)) return;
-        bot.sendMessage(chatId, "Chưa hoạt động !", options);
+        bot.getChatAdministrators(chatId).then(admins => {
+            console.log(admins);
+            // const groups = admins
+            //     .filter(admin => admin.status === 'administrator')
+            //     .map(admin => admin.chat.title);
+
+            // bot.sendMessage(chatId, `Danh sách các nhóm mà bot tham gia: \n${groups.join('\n')}`);
+        }).catch(error => {
+            console.log('Error:', error);
+        });
+        // bot.sendMessage(chatId, "Chưa hoạt động !", options);
     });
     bot.onText(/\/Google_sheet/, (msg, match) => {
         const chatId = msg.chat.id;
@@ -72,15 +100,20 @@ function byKeyword() {
         var data = await googleDrive.getListFile()
         console.log(data);
         var iconFolder = "📁";
-        var message = "<strong>Danh sách thư mục\n</strong>"
+        var message = "Danh sách thư mục\n"
         var lsBtn = [];
-        data.forEach(element => {
+        var row_2 = [];
+        data.forEach((element, key) => {
             lsBtn.push({
-                text: iconFolder + element.name + "_(" + element.id + ")",
-                callback_data: 'btn_folder',
+                text: iconFolder + element.name,
+                callback_data: 'btnFolder_' + element.id,
             });
+            if (!key % 2 == 0) {
+                row_2.push(lsBtn);
+                lsBtn = [];
+            }
         });
-        const inlineKeyboard = { inline_keyboard: [lsBtn] };
+        const inlineKeyboard = { inline_keyboard: row_2 };
         const messageOptions = {
             reply_markup: inlineKeyboard
         };
@@ -102,6 +135,42 @@ function byKeyword() {
         };
         unfinishedWork.key = "1";
         bot.sendMessage(chatId, 'Hãy lựa chọn hành động :', messageOptions);
+    });
+
+    // bot.onText(/\/add_group/, async(msg, match) => {
+    //     const chatId = msg.chat.id;
+    //     if (msg.from.id == ID_USER && msg.chat.type == 'supergroup') {
+    //         try {
+    //             const dataFile = await method.readFile(GROUP_FOLDER_PATH);
+    //             console.log('Nội dung của file:', dataFile);
+
+    //             const dataGroup = { id: msg.chat.id, title: msg.chat.title };
+    //             let data;
+
+    //             if (!dataFile || dataFile.length <= 0) {
+    //                 data = [dataGroup];
+    //             } else {
+    //                 data = dataFile;
+    //                 data.push(dataGroup);
+    //             }
+
+    //             await method.writeFile(JSON.stringify(data), GROUP_FOLDER_PATH);
+    //             bot.sendMessage(chatId, "Thêm nhóm vào danh sách thành công !", options);
+    //         } catch (error) {
+    //             console.error('Đã xảy ra lỗi:', error);
+    //             bot.sendMessage(chatId, "Lỗi khi thêm nhóm vào danh sách!", options);
+    //         }
+    //     }
+    // });
+    bot.onText(/\/add_group/, async(msg, match) => {
+        const chatId = msg.chat.id;
+        if (msg.from.id == ID_USER && msg.chat.type == 'supergroup') {
+
+        }
+    });
+    bot.onText(/\/remove_group/, (msg, match) => {
+        const chatId = msg.chat.id;
+        bot.sendMessage(chatId, "Chưa hoạt động !", options);
     });
 }
 
@@ -129,7 +198,7 @@ function receiveAll() {
             if (code.trim() == KEY) {
                 unfinishedWork.isUnlocked = true;
                 fulfillRequest();
-                return bot.sendMessage(chatId, "Nhập chính xác", options);;
+                return bot.sendMessage(chatId, "Nhập chính xác", options);
             }
             requestPassword(chatId, unfinishedWork.key)
         }
@@ -144,12 +213,36 @@ function requestPassword(chatId, key) {
     lastUnlockRequestTime = new Date();
     return bot.sendMessage(chatId, message, options);
 }
-bot.on('callback_query', (callbackQuery) => {
+bot.on('callback_query', async(callbackQuery) => {
     // console.log(callbackQuery.message.reply_markup.inline_keyboard);
-    console.log(callbackQuery);
+    // console.log(callbackQuery);
     const data = callbackQuery.data;
     const chatId = callbackQuery.message.chat.id;
     const message_id = callbackQuery.message.message_id;
+    const indexOfDash = data.indexOf('_');
+    // mở file 
+    if (indexOfDash !== -1) {
+        const partBeforeDash = data.substring(0, indexOfDash);
+        const partAfterDash = data.substring(indexOfDash + 1);
+        if (partBeforeDash != 'btnFolder') return;
+        let dataGoogle = await googleDrive.getFolderByID(partAfterDash);
+        // console.log(dataGoogle);
+        if (dataGoogle.length <= 0) {
+            bot.sendMessage(chatId, "Thư mục không có dữ liệu", options);
+        } else {
+            let message = [];
+
+            dataGoogle.forEach(el => {
+                if (!method.isImageExtension(el.name)) { return };
+                message.push({
+                    type: 'photo',
+                    media: link + el.id
+                });
+            });
+            bot.sendMediaGroup(chatId, message);
+        }
+        return;
+    }
     switch (data) {
         case 'selective_deletion':
             unfinishedWork = {
@@ -162,7 +255,9 @@ bot.on('callback_query', (callbackQuery) => {
             lastUnlockRequestTime = null;
             requestPassword(chatId, 'selective_deletion');
             break;
-
+            // case 'btn_folder':
+            //     console.log(callbackQuery.message.reply_markup.inline_keyboard);
+            //     // console.log(callbackQuery);
         default:
             break;
     }

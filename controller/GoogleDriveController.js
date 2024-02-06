@@ -105,5 +105,6 @@ async function getListFile() {
 };
 
 module.exports = {
-    getListFile
+    getListFile,
+    getFolderByID
 }
