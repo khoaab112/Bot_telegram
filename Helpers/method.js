@@ -1,3 +1,4 @@
+const puppeteer = require('puppeteer');
 const fs = require('fs');
 const { promisify } = require('util');
 const isImageExtension = (text) => {
@@ -37,9 +38,40 @@ const readFile = (path) => {
         });
     });
 };
+const readerHTMLToPNG = async(html) => {
+    try {
+        try {
+            const browser = await puppeteer.launch();
+            const page = await browser.newPage();
+            await page.setContent(html);
+
+            // Chụp ảnh trang web
+            const screenshot = await page.screenshot({ fullPage: true });
+
+            // Đóng trình duyệt
+            await browser.close();
+            return screenshot;
+            console.log(screenshot);
+
+            // Gửi hình ảnh lên Telegram
+            bot.sendPhoto(chatId, screenshot, { caption: 'HTML to Image' }, function(error, msg) {
+                if (error) {
+                    console.error('Error sending image:', error);
+                } else {
+                    console.log('Image sent successfully:', msg);
+                }
+            });
+        } catch (error) {
+            console.error('Error converting HTML to image:', error);
+        }
+    } catch (error) {
+        console.error('Error converting HTML to image:', error);
+    }
+};
 module.exports = {
     isImageExtension,
     appendFile,
     readFile,
     writeFile,
+    readerHTMLToPNG,
 }
