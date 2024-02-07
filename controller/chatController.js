@@ -371,12 +371,17 @@ async function childNodeList(data, chat_id, message_id) {
                         html += `<td>` + el + `</td>`;
                     }
                 });
+                html += `<td>Tổng</td>`;
                 html += conBody;
-
+                let sumMoney = 0;
                 data[Number(index) + 1].forEach((el, key) => {
                     if (el.length <= 0) return;
                     html += `<td style="color: red;font-weight: bold;">` + el + `</td>`;
+                    console.log(parseInt(el.replace(/\./g, "")))
+                    sumMoney += parseInt(el.replace(/\./g, ""));
                 });
+                console.log(sumMoney);
+                html += `<td style="color: red;font-weight: bold;">` + sumMoney.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + ` VND</td>`;
                 html += lastBody + lastHtml;
                 bodyHTML += html;
             }
