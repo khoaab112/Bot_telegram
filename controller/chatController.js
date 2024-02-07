@@ -1,10 +1,11 @@
 const googleDrive = require("./GoogleDriveController");
+const googleSheet = require("./GoogleSheetController");
 const method = require("../Helpers/method");
 const link = "https://lh3.googleusercontent.com/d/";
 const GROUP_FOLDER_PATH = "./assets/doc/groups.json"
 const dotenv = require('dotenv');
 dotenv.config();
-const { TOKEN_TELEGRAM, KEY, ID_USER } = process.env;
+const { TOKEN_TELEGRAM, KEY, ID_USER, ID_GROUP_GOOGLE_SHEET } = process.env;
 const TelegramBot = require('node-telegram-bot-api');
 const token = TOKEN_TELEGRAM;
 const bot = new TelegramBot(token, { polling: true });
@@ -68,10 +69,39 @@ function byKeyword() {
         });
         // bot.sendMessage(chatId, "Chưa hoạt động !", options);
     });
-    bot.onText(/\/Google_sheet/, (msg, match) => {
+    bot.onText(/\/Google_sheet/, async(msg, match) => {
         const chatId = msg.chat.id;
-        if (!allowOperation(chatId, msg.chat.type)) return;
-        bot.sendMessage(chatId, "Chưa hoạt động !", options);
+        var sheetsName = await googleSheet.listSheets();
+        if (sheetsName.length <= 0) {
+            bot.sendMessage(chatId, "Không có sheet nào được tìm thấy", options);
+            return;
+        };
+        var lsBtn = [];
+        var row_2 = [];
+        sheetsName.forEach((element, key) => {
+            console.log(element.properties.title);
+            lsBtn.push({
+                text: element.properties.title,
+                callback_data: 'btnSheetMain_' + element.properties.title,
+            });
+            if (!key % 2 == 0) {
+                row_2.push(lsBtn);
+                lsBtn = [];
+            }
+        });
+        const inlineKeyboard = { inline_keyboard: row_2 };
+        const messageOptions = {
+            reply_markup: inlineKeyboard,
+            parse_mode: "HTML",
+        };
+        if (msg.from.id == ID_USER && msg.chat.type == 'private') {
+            let message = "Danh sách sheet <strong><i>(Các nút chỉ hoạt động trong nhóm sheet)</i></strong>"
+            bot.sendMessage(chatId, message, messageOptions);
+            return;
+        }
+        if (msg.chat.id != ID_GROUP_GOOGLE_SHEET || msg.from.id != ID_USER) return;
+        let message = "Danh sách sheet <strong><i>(Chọn sheet để xử dụng các tính năng)</i></strong>"
+        bot.sendMessage(chatId, message, messageOptions);
     });
     bot.onText(/\/weather/, (msg, match) => {
         const chatId = msg.chat.id;
@@ -220,29 +250,35 @@ bot.on('callback_query', async(callbackQuery) => {
     const chatId = callbackQuery.message.chat.id;
     const message_id = callbackQuery.message.message_id;
     const indexOfDash = data.indexOf('_');
-    // mở file 
+    // google_sheet
     if (indexOfDash !== -1) {
-        const partBeforeDash = data.substring(0, indexOfDash);
-        const partAfterDash = data.substring(indexOfDash + 1);
-        if (partBeforeDash != 'btnFolder') return;
-        let dataGoogle = await googleDrive.getFolderByID(partAfterDash);
-        // console.log(dataGoogle);
-        if (dataGoogle.length <= 0) {
-            bot.sendMessage(chatId, "Thư mục không có dữ liệu", options);
-        } else {
-            let message = [];
-
-            dataGoogle.forEach(el => {
-                if (!method.isImageExtension(el.name)) { return };
-                message.push({
-                    type: 'photo',
-                    media: link + el.id
-                });
-            });
-            bot.sendMediaGroup(chatId, message);
-        }
+        childNodeList(data, chatId, message_id);
         return;
     }
+
+    // // mở file 
+    // if (indexOfDash !== -1) {
+    //     const partBeforeDash = data.substring(0, indexOfDash);
+    //     const partAfterDash = data.substring(indexOfDash + 1);
+    //     if (partBeforeDash != 'btnFolder') return;
+    //     let dataGoogle = await googleDrive.getFolderByID(partAfterDash);
+    //     // console.log(dataGoogle);
+    //     if (dataGoogle.length <= 0) {
+    //         bot.sendMessage(chatId, "Thư mục không có dữ liệu", options);
+    //     } else {
+    //         let message = [];
+
+    //         dataGoogle.forEach(el => {
+    //             if (!method.isImageExtension(el.name)) { return };
+    //             message.push({
+    //                 type: 'photo',
+    //                 media: link + el.id
+    //             });
+    //         });
+    //         bot.sendMediaGroup(chatId, message);
+    //     }
+    //     return;
+    // }
     switch (data) {
         case 'selective_deletion':
             unfinishedWork = {
@@ -273,6 +309,53 @@ function fulfillRequest() {
             break;
         default:
 
+    }
+}
+
+function childNodeList(data, chat_id, message_id) {
+    const indexOfDash = data.indexOf('_');
+    const partBeforeDash = data.substring(0, indexOfDash);
+    const partAfterDash = data.substring(indexOfDash + 1);
+    switch (partBeforeDash) {
+        case 'btnSheetMain':
+            const inlineKeyboard = {
+                inline_keyboard: [
+                    [{
+                            text: 'Đọc tất cả dữ liệu',
+                            callback_data: 'btnSheetChildRead_' + partAfterDash,
+                        },
+                        {
+                            text: 'ghi dữ liệu theo ngày hiện tại',
+                            callback_data: 'btnSheetChildWrite_' + partAfterDash,
+                        },
+                    ],
+                    [{
+                            text: 'Đọc dữ liệu thao ngày',
+                            callback_data: 'btnSheetChildSearchByDay' + partAfterDash,
+                        },
+                        {
+                            text: 'Tính tổng tiền theo ngày',
+                            callback_data: 'btnSheetChildSum' + partAfterDash,
+                        },
+                    ],
+                ]
+            };
+            const messageOptions = {
+                reply_markup: inlineKeyboard
+            };
+            unfinishedWork.key = "1";
+            bot.sendMessage(chat_id, 'Hãy lựa chọn hành động cho sheet ' + partAfterDash + ':', messageOptions);
+            break;
+        case 'btnSheetChildRead':
+            break;
+        case 'btnSheetChildWrite':
+            break;
+        case 'btnSheetChildSearchByDay':
+            break;
+        case 'btnSheetChildSum':
+            break;
+        default:
+            break;
     }
 }
 
