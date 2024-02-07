@@ -27,11 +27,11 @@ async function listSheets() {
         console.error('The API returned an error:', err);
     }
 }
-async function readFromGoogleSheet() {
+async function readFromGoogleSheet(sheetName) {
     try {
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: ID_GOOGLE_SHEET,
-            range: 'log_thu_chi!A1:B10', // Thay đổi Sheet1 và phạm vi theo ý của bạn
+            range: sheetName,
         });
 
         const rows = response.data.values;

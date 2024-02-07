@@ -312,7 +312,7 @@ function fulfillRequest() {
     }
 }
 
-function childNodeList(data, chat_id, message_id) {
+async function childNodeList(data, chat_id, message_id) {
     const indexOfDash = data.indexOf('_');
     const partBeforeDash = data.substring(0, indexOfDash);
     const partAfterDash = data.substring(indexOfDash + 1);
@@ -347,6 +347,41 @@ function childNodeList(data, chat_id, message_id) {
             bot.sendMessage(chat_id, 'Hãy lựa chọn hành động cho sheet ' + partAfterDash + ':', messageOptions);
             break;
         case 'btnSheetChildRead':
+            var data = await googleSheet.readFromGoogleSheet(partAfterDash);
+            var html = "";
+            const firstHtml = `<table style="border-collapse: collapse; width: 100%;border="1">    <thead style="border: 2px solid black;background: #e6f4ff;">
+<tr>
+    <th colspan="1">Ngày</th>
+</tr>
+</thead>`;
+            var firstBody = `<tbody style="border: 2px solid black; "><tr style="text-align: center;">`;
+            var conBody = `</tr><tr style="text-align: right;">`;
+            var lastBody = ` </tr></tbody>`;
+            let bodyHTML = "";
+            const lastHtml = `</table>`;
+            for (let index in data) {
+                let html = '';
+                if (data[index].length <= 0) continue;
+                if (data[index][0].length <= 0) continue;
+                data[index].forEach((el, key) => {
+                    console.log(key);
+                    if (key == 0) {
+                        html += firstBody + `<td rowspan="2">` + el + `</td>`;
+                    } else {
+                        html += `<td>` + el + `</td>`;
+                    }
+                });
+                html += conBody;
+
+                data[Number(index) + 1].forEach((el, key) => {
+                    if (el.length <= 0) return;
+                    html += `<td style="color: red;font-weight: bold;">` + el + `</td>`;
+                });
+                html += lastBody + lastHtml;
+                bodyHTML += html;
+            }
+            html = firstHtml + bodyHTML + lastHtml;
+            console.log(html);
             break;
         case 'btnSheetChildWrite':
             break;
